@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Smart Recipe — Stop Wasting Food. Start Cooking Smarter.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="on-landing">
+
+  <!-- ════════════════════════════════════
+       STICKY HEADER
+       ════════════════════════════════════ -->
+  <header id="site-header">
+    <div class="container header-inner">
+
+      <!-- Logo -->
+      <button class="logo" id="logo-btn">
+        <span class="logo-icon">🍳</span>
+        <span class="logo-text">AI Smart Recipe</span>
+      </button>
+
+      <!-- Desktop nav -->
+      <nav class="desktop-nav" aria-label="Main navigation">
+        <button class="nav-link active" data-nav="landing">Home</button>
+        <button class="nav-link" data-nav="generate">Generator</button>
+        <button class="nav-link" data-nav="saved">Saved</button>
+      </nav>
+
+      <!-- Desktop auth -->
+      <div class="header-auth">
+        <span id="user-greeting" class="hidden">
+          Hi, <strong id="username-display"></strong>
+        </span>
+        <button id="btn-login"    class="btn-outline-nav">Login</button>
+        <button id="btn-register" class="btn-accent-nav">Register</button>
+        <button id="btn-logout"   class="btn-outline-nav hidden">Logout</button>
+      </div>
+
+      <!-- Hamburger -->
+      <button id="hamburger-btn" class="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+
+    </div>
+  </header>
+
+  <!-- Mobile drawer (slides from right) -->
+  <div id="mobile-menu" class="mobile-menu" aria-hidden="true">
+    <div class="mobile-menu-top">
+      <span class="logo-text">🍳 AI Smart Recipe</span>
+      <button id="mobile-close-btn" class="hamburger hamburger-x" aria-label="Close menu">
+        <span></span><span></span>
+      </button>
+    </div>
+    <nav class="mobile-nav">
+      <button class="mobile-nav-link" data-nav="landing">🏠 Home</button>
+      <button class="mobile-nav-link" data-nav="generate">✨ Generator</button>
+      <button class="mobile-nav-link" data-nav="saved">❤️ Saved Recipes</button>
+    </nav>
+    <div class="mobile-auth">
+      <div id="mobile-logged-out">
+        <button id="mobile-btn-login"    class="btn-outline-nav btn-full">Login</button>
+        <button id="mobile-btn-register" class="btn-accent-nav btn-full">Register</button>
+      </div>
+      <div id="mobile-logged-in" class="hidden">
+        <p id="mobile-greeting"></p>
+        <button id="mobile-btn-logout" class="btn-outline-nav btn-full">Logout</button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-backdrop" class="mobile-backdrop hidden"></div>
+
+  <!-- ════════════════════════════════════
+       LANDING PAGE
+       ════════════════════════════════════ -->
+  <section id="section-landing">
+
+    <!-- Hero with mouse-glow -->
+    <div class="landing-hero" id="landing-hero">
+      <div class="hero-glow glow-green" id="glow-green"></div>
+      <div class="hero-glow glow-orange" id="glow-orange"></div>
+      <div class="hero-grid-overlay"></div>
+      <div class="container hero-content">
+        <div class="hero-badge">✨ Powered by Claude AI</div>
+        <h1 class="hero-title">
+          Stop Wasting Food.<br />
+          <span class="hero-accent">Start Cooking Smarter.</span>
+        </h1>
+        <p class="hero-subtitle">
+          Tell Claude what's in your fridge. Get 3 personalised, complete recipes in seconds — tailored to your ingredients and dietary needs.
+        </p>
+        <div class="hero-actions">
+          <button id="btn-get-started" class="btn-hero-primary">
+            Find My Recipes <span class="btn-arrow">→</span>
+          </button>
+          <button id="btn-see-how" class="btn-hero-ghost">See How It Works ↓</button>
+        </div>
+      </div>
+      <!-- Floating food background -->
+      <div class="floating-foods" aria-hidden="true">
+        <span class="ff f1">🍕</span><span class="ff f2">🥑</span>
+        <span class="ff f3">🍜</span><span class="ff f4">🥦</span>
+        <span class="ff f5">🍗</span><span class="ff f6">🧄</span>
+        <span class="ff f7">🥕</span><span class="ff f8">🍳</span>
+        <span class="ff f9">🫙</span><span class="ff f10">🍋</span>
+      </div>
+    </div>
+
+    <!-- Glassmorphism stat cards -->
+    <div id="how-it-works" class="stats-section">
+      <div class="container">
+        <p class="eyebrow">The Problem We Solve</p>
+        <h2 class="section-heading">Why AI-powered cooking?</h2>
+        <div class="stats-grid">
+          <div class="glass-card stat-card">
+            <div class="stat-icon">🗑️</div>
+            <div class="stat-value">1/3</div>
+            <div class="stat-label">of all food produced globally is wasted</div>
+          </div>
+          <div class="glass-card stat-card">
+            <div class="stat-icon">⏱</div>
+            <div class="stat-value">30 min</div>
+            <div class="stat-label">saved weekly on meal planning</div>
+          </div>
+          <div class="glass-card stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value">25%</div>
+            <div class="stat-label">reduction in weekly grocery spending</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works steps -->
+    <div class="steps-section">
+      <div class="container">
+        <p class="eyebrow">How It Works</p>
+        <h2 class="section-heading">Three steps to a great meal</h2>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <div class="step-icon-wrap">🥕</div>
+            <h3>Add Ingredients</h3>
+            <p>Type whatever's in your fridge. Even a single ingredient works perfectly.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">02</div>
+            <div class="step-icon-wrap">🥗</div>
+            <h3>Set Preferences</h3>
+            <p>Filter by Vegetarian, Vegan, Keto, Gluten-free, or Halal with one tap.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">03</div>
+            <div class="step-icon-wrap">🍽️</div>
+            <h3>Cook &amp; Enjoy</h3>
+            <p>Get 3 complete recipes instantly. Follow along in full-screen Cook Mode.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom CTA -->
+    <div class="cta-banner">
+      <div class="container">
+        <h2>Ready to cook something amazing?</h2>
+        <p>Free to use. No credit card needed.</p>
+        <button class="btn-hero-primary" id="btn-cta-bottom">Start Cooking Now →</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════
+       APP
+       ════════════════════════════════════ -->
+  <main id="section-app" class="hidden">
+
+    <!-- Generator -->
+    <section id="section-generate">
+      <div class="container">
+        <div class="app-hero">
+          <h1>What's in your kitchen?</h1>
+          <p class="app-subtitle">Add ingredients, set your dietary preferences, then hit <strong>Find Recipes</strong>.</p>
+        </div>
+
+        <!-- Magic input -->
+        <div class="input-card">
+          <div class="magic-input-wrap">
+            <span class="input-prefix-icon">🔍</span>
+            <input
+              id="ingredient-input"
+              type="text"
+              class="magic-input"
+              placeholder="e.g. chicken, garlic, lemon…"
+              autocomplete="off"
+            />
+            <button id="btn-add-ingredient" class="btn-add-ingredient">Add</button>
+          </div>
+          <div id="ingredient-tags" class="tag-container"></div>
+          <p id="ingredient-hint" class="hint">No ingredients yet — start typing above!</p>
+        </div>
+
+        <!-- Dietary filter icons -->
+        <div class="dietary-wrap">
+          <p class="dietary-label">Dietary preferences</p>
+          <div class="dietary-scroll">
+            <button class="diet-btn" data-value="Vegetarian">
+              <span class="diet-icon">🌿</span>
+              <span>Vegetarian</span>
+            </button>
+            <button class="diet-btn" data-value="Vegan">
+              <span class="diet-icon">🌱</span>
+              <span>Vegan</span>
+            </button>
+            <button class="diet-btn" data-value="Gluten-free">
+              <span class="diet-icon">🌾</span>
+              <span>Gluten-free</span>
+            </button>
+            <button class="diet-btn" data-value="Keto">
+              <span class="diet-icon">🥑</span>
+              <span>Keto</span>
+            </button>
+            <button class="diet-btn" data-value="Halal">
+              <span class="diet-icon">☪</span>
+              <span>Halal</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Generate -->
+        <div class="generate-row">
+          <button id="btn-generate" class="btn-generate">
+            ✨ Find Recipes
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading hidden">
+          <div class="loading-card">
+            <div class="spinner"></div>
+            <p class="loading-text">Claude is crafting your recipes…</p>
+            <p class="loading-sub">Usually takes 5–10 seconds</p>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="recipe-results" class="recipe-grid hidden"></div>
+
+        <!-- Spacer so fixed generate btn doesn't cover content on mobile -->
+        <div class="mobile-spacer"></div>
+      </div>
+    </section>
+
+    <!-- Saved -->
+    <section id="section-saved" class="hidden">
+      <div class="container">
+        <h2 class="section-title">❤️ Saved Recipes</h2>
+        <div id="saved-auth-notice" class="auth-notice hidden">
+          <p>Please <button class="link-btn" id="saved-login-link">log in</button> to view saved recipes.</p>
+        </div>
+        <div id="saved-recipes-list"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ════════════════════════════════════
+       COOK MODE (full-screen overlay)
+       ════════════════════════════════════ -->
+  <div id="cook-mode" class="cook-mode hidden">
+    <div class="cook-header">
+      <button id="cook-close-btn" class="cook-close">← Exit Cook Mode</button>
+      <div class="cook-title-area">
+        <h2 id="cook-title"></h2>
+        <div id="cook-badges" class="cook-badges"></div>
+      </div>
+    </div>
+    <div class="cook-body">
+      <div class="cook-col">
+        <h3 class="cook-section-title">🥕 Ingredients</h3>
+        <ul id="cook-ingredients"></ul>
+      </div>
+      <div class="cook-col cook-steps-col">
+        <h3 class="cook-section-title">📋 Steps <span id="cook-progress" class="cook-progress"></span></h3>
+        <ol id="cook-steps"></ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       AUTH MODAL (single modal, two panels)
+       ════════════════════════════════════ -->
+  <div id="modal-auth" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-box glass-modal">
+      <button class="modal-x" id="modal-close-btn" aria-label="Close">×</button>
+
+      <!-- Login panel -->
+      <div id="panel-login" class="auth-panel active">
+        <div class="modal-icon">🍳</div>
+        <h2 class="modal-title">Welcome Back</h2>
+        <p class="modal-sub">Sign in to your account</p>
+        <form id="form-login" novalidate>
+          <div class="float-group">
+            <input id="login-email"    type="email"    name="email"     placeholder=" " required autocomplete="email" />
+            <label for="login-email">Email address</label>
+          </div>
+          <div class="float-group">
+            <input id="login-password" type="password" name="password"  placeholder=" " required autocomplete="current-password" />
+            <label for="login-password">Password</label>
+            <button type="button" class="pw-toggle" data-target="login-password" tabindex="-1">👁</button>
+          </div>
+          <p id="login-error" class="form-error hidden"></p>
+          <button type="submit" class="btn-auth-submit">Sign In</button>
+        </form>
+        <p class="auth-switch">Don't have an account? <button class="link-btn" id="to-register">Sign Up Free</button></p>
+      </div>
+
+      <!-- Register panel -->
+      <div id="panel-register" class="auth-panel">
+        <div class="modal-icon">🍳</div>
+        <h2 class="modal-title">Create Account</h2>
+        <p class="modal-sub">Join free — takes under a minute</p>
+        <form id="form-register" novalidate>
+          <div class="float-group">
+            <input id="reg-username" type="text"     name="username" placeholder=" " required autocomplete="username" />
+            <label for="reg-username">Username</label>
+          </div>
+          <div class="float-group">
+            <input id="reg-email"    type="email"    name="email"    placeholder=" " required autocomplete="email" />
+            <label for="reg-email">Email address</label>
+          </div>
+          <div class="float-group">
+            <input id="reg-password" type="password" name="password" placeholder=" " required autocomplete="new-password" />
+            <label for="reg-password">Password</label>
+            <button type="button" class="pw-toggle" data-target="reg-password" tabindex="-1">👁</button>
+            <!-- Password strength meter -->
+            <div class="pw-strength hidden" id="pw-strength">
+              <div class="pw-bar"><div class="pw-fill" id="pw-fill"></div></div>
+              <span class="pw-label" id="pw-label">Weak</span>
+            </div>
+          </div>
+          <p id="register-error" class="form-error hidden"></p>
+          <button type="submit" class="btn-auth-submit">Create Account</button>
+        </form>
+        <p class="auth-switch">Already have an account? <button class="link-btn" id="to-login">Sign In</button></p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
