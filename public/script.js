@@ -431,19 +431,24 @@ function recipeImgUrl(recipe, idx) {
   return `https://loremflickr.com/640/340/${query}/all?lock=${idx + 1}`;
 }
 
-function renderRecipes(recipes) {
-  el.recipeResults.innerHTML = recipes.map((r, idx) => `
-    <div class="recipe-card">
+function macroPct(val, max) { return val != null ? Math.min(Math.round(val / max * 100), 100) : 0; }
 
-      <!-- Food image with overlaid badges -->
+function renderRecipes(recipes) {
+  el.recipeResults.innerHTML = recipes.map((r, idx) => {
+    const hasMacros = r.calories_per_serving != null;
+    const macroHtml = hasMacros ? `
+      <div class="macro-section">
+        <p class="macro-title">📈 Nutrition per serving</p>
+        <div class="macro-row"><span class="macro-label">Calories</span><div class="macro-bar-track"><div class="macro-bar macro-cal" style="--bar-w:${macroPct(r.calories_per_serving,800)}%"></div></div><span class="macro-val">${r.calories_per_serving} kcal</span></div>
+        <div class="macro-row"><span class="macro-label">Protein</span><div class="macro-bar-track"><div class="macro-bar macro-protein" style="--bar-w:${macroPct(r.protein_g,60)}%"></div></div><span class="macro-val">${r.protein_g}g</span></div>
+        <div class="macro-row"><span class="macro-label">Carbs</span><div class="macro-bar-track"><div class="macro-bar macro-carbs" style="--bar-w:${macroPct(r.carbs_g,100)}%"></div></div><span class="macro-val">${r.carbs_g}g</span></div>
+        <div class="macro-row"><span class="macro-label">Fat</span><div class="macro-bar-track"><div class="macro-bar macro-fat" style="--bar-w:${macroPct(r.fat_g,50)}%"></div></div><span class="macro-val">${r.fat_g}g</span></div>
+      </div>` : '';
+
+    return `
+    <div class="recipe-card">
       <div class="recipe-img-wrap">
-        <img
-          class="recipe-img"
-          src="${recipeImgUrl(r, idx)}"
-          alt="${escapeHtml(r.title)}"
-          loading="lazy"
-          onerror="this.parentElement.classList.add('img-error')"
-        />
+        <img class="recipe-img" src="${recipeImgUrl(r, idx)}" alt="${escapeHtml(r.title)}" loading="lazy" onerror="this.parentElement.classList.add('img-error')" />
         <div class="recipe-img-overlay"></div>
         <div class="recipe-img-top">
           <div class="recipe-badges">
@@ -451,38 +456,28 @@ function renderRecipes(recipes) {
             <span class="badge badge-${diffClass(r.difficulty)}">${escapeHtml(r.difficulty)}</span>
             <span class="badge badge-servings">👥 ${r.servings}</span>
           </div>
-          <button class="btn-heart" data-index="${idx}" aria-label="Save ${escapeHtml(r.title)}">
-            ${HEART_SVG}
-          </button>
+          <button class="btn-heart" data-index="${idx}" aria-label="Save ${escapeHtml(r.title)}">${HEART_SVG}</button>
         </div>
         <h3 class="recipe-card-title">${escapeHtml(r.title)}</h3>
       </div>
-
       <div class="recipe-body">
         <p class="recipe-desc">${escapeHtml(r.description)}</p>
-
+        ${macroHtml}
         <details>
           <summary>🥕 Ingredients (${r.ingredients.length})</summary>
-          <div class="detail-content">
-            <ul class="ingredient-list">
-              ${r.ingredients.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
-            </ul>
-          </div>
+          <div class="detail-content"><ul class="ingredient-list">${r.ingredients.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul></div>
         </details>
-
         <details>
           <summary>📋 Instructions (${r.instructions.length} steps)</summary>
-          <div class="detail-content">
-            <ol class="instruction-list">
-              ${r.instructions.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
-            </ol>
-          </div>
+          <div class="detail-content"><ol class="instruction-list">${r.instructions.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol></div>
         </details>
-
-        <button class="btn-cook-now" data-index="${idx}">🍳 Cook Now</button>
+        <div class="recipe-action-row">
+          <button class="btn-cook-now" data-index="${idx}">🍳 Cook Now</button>
+          <button class="btn-grocery" data-index="${idx}">🛒 Grocery List</button>
+        </div>
       </div>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 }
 
 // ════════════════════════════════════════════════════════
@@ -718,6 +713,271 @@ function persistAuth(data) {
 }
 
 // ════════════════════════════════════════════════════════
+// 🎙 VOICE INPUT
+// ════════════════════════════════════════════════════════
+const voiceInput = {
+  recognition: null,
+  isListening: false,
+  btn: null,
+
+  init() {
+    this.btn = $('btn-mic');
+    if (!this.btn) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      this.btn.title   = 'Voice input not supported in this browser';
+      this.btn.style.opacity = '0.35';
+      this.btn.disabled = true;
+      return;
+    }
+    this.recognition = new SR();
+    this.recognition.lang = 'en-US';
+    this.recognition.interimResults = false;
+    this.recognition.maxAlternatives = 1;
+    this.recognition.onresult = e => this.process(e.results[0][0].transcript);
+    this.recognition.onend   = () => this.setListening(false);
+    this.recognition.onerror = e => {
+      this.setListening(false);
+      if (e.error !== 'no-speech') showToast('🎙 Voice error: ' + e.error, 'error');
+    };
+    this.btn.addEventListener('click', () => this.toggle());
+  },
+
+  toggle() {
+    if (this.isListening) { this.recognition.stop(); return; }
+    this.recognition.start();
+    this.setListening(true);
+    showToast('🎙 Listening… say your ingredients', 'info');
+  },
+
+  setListening(on) {
+    this.isListening = on;
+    this.btn.classList.toggle('listening', on);
+    this.btn.setAttribute('aria-pressed', String(on));
+    this.btn.title = on ? 'Stop listening' : 'Voice input';
+  },
+
+  process(text) {
+    // Split on commas, "and", spaces between words
+    const parts = text
+      .replace(/\band\b/gi, ',')
+      .split(/,+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 1 && s.length < 50);
+    let added = 0;
+    parts.forEach(raw => {
+      const value = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+      if (!state.ingredients.some(i => i.toLowerCase() === value.toLowerCase())) {
+        state.ingredients.push(value);
+        added++;
+      }
+    });
+    renderTags();
+    showToast(added > 0 ? `🎙 Added: ${parts.slice(0, added).join(', ')}` : 'Already in your list!', added > 0 ? 'success' : 'warning');
+  }
+};
+
+// ════════════════════════════════════════════════════════
+// 🛒 GROCERY LIST
+// ════════════════════════════════════════════════════════
+const groceryList = {
+  modal: null, recipeName: null, itemsList: null, copyBtn: null,
+
+  init() {
+    this.modal      = $('modal-grocery');
+    this.recipeName = $('grocery-recipe-name');
+    this.itemsList  = $('grocery-items');
+    this.copyBtn    = $('btn-copy-grocery');
+    $('grocery-close-btn').addEventListener('click', () => this.close());
+    $('grocery-backdrop').addEventListener('click',  () => this.close());
+    this.copyBtn.addEventListener('click', () => this.copyMissing());
+  },
+
+  open(idx) {
+    const recipe = state.currentRecipes[idx];
+    if (!recipe) return;
+    this.recipeName.textContent = recipe.title;
+    const userList = state.ingredients.map(i => i.toLowerCase());
+    this.itemsList.innerHTML = recipe.ingredients.map(ing => {
+      const ingLow = ing.toLowerCase();
+      const have   = userList.some(u => ingLow.includes(u) || u.includes(ingLow.split(' ').pop()));
+      return `<li class="grocery-item ${have ? 'have' : 'need'}">
+        <label>
+          <input type="checkbox" ${have ? '' : 'checked'} data-ing="${escapeAttr(ing)}" />
+          <span class="grocery-ing">${escapeHtml(ing)}</span>
+          ${have ? '<span class="grocery-badge">✓ have it</span>' : ''}
+        </label>
+      </li>`;
+    }).join('');
+    this.modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  },
+
+  close() {
+    this.modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  },
+
+  copyMissing() {
+    const checked = [...this.itemsList.querySelectorAll('input:checked')];
+    if (!checked.length) { showToast('No items selected!', 'warning'); return; }
+    const text = checked.map(c => c.dataset.ing).join('\n');
+    navigator.clipboard.writeText(text)
+      .then(() => showToast(`📋 Copied ${checked.length} item${checked.length !== 1 ? 's' : ''} to clipboard!`, 'success'))
+      .catch(() => showToast('Copy failed — try manually', 'error'));
+  }
+};
+
+// ════════════════════════════════════════════════════════
+// 💡 SMART GROCERY SUGGESTIONS
+// ════════════════════════════════════════════════════════
+
+const CATEGORY_COLORS = {
+  'Protein':          { bg: 'rgba(33,150,243,.15)',  border: 'rgba(33,150,243,.4)',  text: '#64b5f6' },
+  'Vegetables':       { bg: 'rgba(46,125,50,.15)',   border: 'rgba(46,125,50,.4)',   text: '#a5d6a7' },
+  'Fruits':           { bg: 'rgba(230,81,0,.13)',    border: 'rgba(230,81,0,.4)',    text: '#ffb74d' },
+  'Grains & Legumes': { bg: 'rgba(255,193,7,.12)',   border: 'rgba(255,193,7,.4)',   text: '#ffd54f' },
+  'Dairy & Eggs':     { bg: 'rgba(189,189,189,.12)', border: 'rgba(189,189,189,.4)', text: '#e0e0e0' },
+  'Healthy Fats':     { bg: 'rgba(102,187,106,.13)', border: 'rgba(102,187,106,.4)', text: '#c8e6c9' },
+  'Spices & Herbs':   { bg: 'rgba(171,71,188,.14)',  border: 'rgba(171,71,188,.4)',  text: '#ce93d8' },
+  'Superfoods':       { bg: 'rgba(239,83,80,.13)',   border: 'rgba(239,83,80,.4)',   text: '#ef9a9a' },
+};
+
+const smartSuggestions = {
+  modal: null, loading: null, results: null, chips: null,
+  addBtn: null, allBtn: null,
+  selected: new Set(),
+
+  init() {
+    this.modal   = $('modal-suggest');
+    this.loading = $('suggest-loading');
+    this.results = $('suggest-results');
+    this.chips   = $('suggest-chips');
+    this.addBtn  = $('btn-suggest-add');
+    this.allBtn  = $('btn-suggest-all');
+
+    $('btn-smart-suggest').addEventListener('click', () => this.open());
+    $('suggest-close-btn').addEventListener('click', () => this.close());
+    $('suggest-backdrop').addEventListener('click',  () => this.close());
+    this.addBtn.addEventListener('click', () => this.addSelected());
+    this.allBtn.addEventListener('click', () => this.toggleSelectAll());
+  },
+
+  open() {
+    this.modal.classList.remove('hidden');
+    this.loading.classList.remove('hidden');
+    this.results.classList.add('hidden');
+    this.selected.clear();
+    document.body.style.overflow = 'hidden';
+    this.fetchSuggestions();
+  },
+
+  close() {
+    this.modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  },
+
+  async fetchSuggestions() {
+    try {
+      const res  = await apiFetch('/api/recipes/smart-suggestions', {
+        method: 'POST',
+        body:   JSON.stringify({ ingredients: state.ingredients })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to get suggestions');
+      this.renderChips(data.suggestions);
+    } catch (err) {
+      this.close();
+      showToast(err.message, 'error');
+    }
+  },
+
+  renderChips(suggestions) {
+    // Group by category
+    const groups = {};
+    suggestions.forEach(s => {
+      if (!groups[s.category]) groups[s.category] = [];
+      groups[s.category].push(s);
+    });
+
+    this.chips.innerHTML = Object.entries(groups).map(([cat, items]) => {
+      const col = CATEGORY_COLORS[cat] || CATEGORY_COLORS['Vegetables'];
+      const chipsHtml = items.map((s, i) => `
+        <button class="suggest-chip" data-name="${escapeAttr(s.name)}"
+          style="--chip-bg:${col.bg};--chip-border:${col.border};--chip-text:${col.text};animation-delay:${i * 40}ms"
+          title="${escapeHtml(s.benefit)}">
+          <span class="chip-emoji">${escapeHtml(s.emoji || '🌿')}</span>
+          <span class="chip-name">${escapeHtml(s.name)}</span>
+          <span class="chip-benefit">${escapeHtml(s.benefit)}</span>
+        </button>`).join('');
+      return `<div class="suggest-group">
+        <p class="suggest-cat-label">${escapeHtml(cat)}</p>
+        <div class="suggest-group-chips">${chipsHtml}</div>
+      </div>`;
+    }).join('');
+
+    // Chip toggle
+    this.chips.addEventListener('click', e => {
+      const chip = e.target.closest('.suggest-chip');
+      if (!chip) return;
+      const name = chip.dataset.name;
+      if (this.selected.has(name)) {
+        this.selected.delete(name);
+        chip.classList.remove('selected');
+      } else {
+        this.selected.add(name);
+        chip.classList.add('selected');
+      }
+      this.updateAddBtn();
+    });
+
+    this.loading.classList.add('hidden');
+    this.results.classList.remove('hidden');
+    this.updateAddBtn();
+  },
+
+  updateAddBtn() {
+    const n = this.selected.size;
+    this.addBtn.textContent = n > 0 ? `✓ Add ${n} Item${n !== 1 ? 's' : ''} to My List` : '✓ Add Selected to My List';
+    this.addBtn.disabled = n === 0;
+  },
+
+  toggleSelectAll() {
+    const allChips = [...this.chips.querySelectorAll('.suggest-chip')];
+    const allSelected = allChips.every(c => c.classList.contains('selected'));
+    allChips.forEach(c => {
+      if (allSelected) {
+        c.classList.remove('selected');
+        this.selected.delete(c.dataset.name);
+      } else {
+        c.classList.add('selected');
+        this.selected.add(c.dataset.name);
+      }
+    });
+    this.allBtn.textContent = allSelected ? 'Select All' : 'Deselect All';
+    this.updateAddBtn();
+  },
+
+  addSelected() {
+    let added = 0;
+    this.selected.forEach(name => {
+      const value = name.charAt(0).toUpperCase() + name.slice(1);
+      if (!state.ingredients.some(i => i.toLowerCase() === value.toLowerCase())) {
+        state.ingredients.push(value);
+        added++;
+      }
+    });
+    renderTags();
+    this.close();
+    showToast(
+      added > 0 ? `💡 Added ${added} healthy ingredient${added !== 1 ? 's' : ''} to your list!` : 'Already in your list!',
+      'success'
+    );
+    setTimeout(() => $('ingredient-tags')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+  }
+};
+
+// ════════════════════════════════════════════════════════
 // API FETCH HELPER
 // ════════════════════════════════════════════════════════
 function apiFetch(url, opts = {}) {
@@ -725,6 +985,150 @@ function apiFetch(url, opts = {}) {
   if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
   return fetch(url, { ...opts, headers });
 }
+
+// ════════════════════════════════════════════════════════
+// FRIDGE VISION
+// ════════════════════════════════════════════════════════
+
+const fridgeVision = {
+  overlay:       null,
+  fileInput:     null,
+  previewImg:    null,
+  scanText:      null,
+  scanSub:       null,
+  scanIcon:      null,
+  detectedWrap:  null,
+  detectedTags:  null,
+  confirmBtn:    null,
+  cancelBtn:     null,
+  pendingItems:  [],
+
+  init() {
+    this.overlay      = $('fridge-scan-overlay');
+    this.fileInput    = $('fridge-file-input');
+    this.previewImg   = $('fridge-preview-img');
+    this.scanText     = $('fridge-scan-text');
+    this.scanSub      = $('fridge-scan-sub');
+    this.scanIcon     = $('fridge-scan-icon');
+    this.detectedWrap = $('fridge-detected-wrap');
+    this.detectedTags = $('fridge-detected-tags');
+    this.confirmBtn   = $('btn-fridge-confirm');
+    this.cancelBtn    = $('btn-fridge-cancel');
+
+    $('btn-scan-fridge').addEventListener('click', () => this.fileInput.click());
+
+    this.fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) this.startScan(file);
+      // Reset so same file can be re-selected
+      e.target.value = '';
+    });
+
+    this.confirmBtn.addEventListener('click', () => this.confirmIngredients());
+    this.cancelBtn.addEventListener('click',  () => this.closeOverlay());
+  },
+
+  startScan(file) {
+    // Validate size (< 5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image too large — please use a photo under 5 MB.', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+
+      // Show overlay with photo
+      this.previewImg.src = dataUrl;
+      this.overlay.classList.remove('hidden', 'done');
+      this.detectedWrap.classList.add('hidden');
+      this.detectedTags.innerHTML = '';
+      this.scanText.textContent = 'AI is reading your fridge…';
+      this.scanSub.textContent  = 'Identifying ingredients with computer vision';
+      this.scanIcon.textContent = '👁';
+      this.scanIcon.style.animation = '';
+      document.body.style.overflow  = 'hidden';
+
+      // Extract base64 (strip the data:...;base64, prefix)
+      const [meta, imageData] = dataUrl.split(',');
+      const mediaType = meta.replace('data:', '').replace(';base64', '');
+
+      this.callApi(imageData, mediaType);
+    };
+    reader.readAsDataURL(file);
+  },
+
+  async callApi(imageData, mediaType) {
+    try {
+      const res  = await apiFetch('/api/recipes/scan-fridge', {
+        method: 'POST',
+        body:   JSON.stringify({ imageData, mediaType })
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Scan failed');
+
+      this.showResults(data.ingredients);
+    } catch (err) {
+      this.closeOverlay();
+      showToast(err.message, 'error');
+    }
+  },
+
+  showResults(ingredients) {
+    // Stop sweep, show ✓
+    this.overlay.classList.add('done');
+    this.scanIcon.textContent = '✅';
+    this.scanIcon.style.animation = 'none';
+    this.scanText.textContent = `Found ${ingredients.length} ingredient${ingredients.length !== 1 ? 's' : ''}!`;
+    this.scanSub.textContent  = 'Review below and tap "Add All" to populate your list.';
+
+    this.pendingItems = ingredients;
+
+    // Animate chips in one-by-one
+    this.detectedWrap.classList.remove('hidden');
+    this.detectedTags.innerHTML = '';
+    ingredients.forEach((ing, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'detected-chip';
+      chip.style.animationDelay = `${i * 60}ms`;
+      chip.textContent = ing;
+      this.detectedTags.appendChild(chip);
+    });
+  },
+
+  confirmIngredients() {
+    let added = 0;
+    this.pendingItems.forEach(raw => {
+      const value = raw.charAt(0).toUpperCase() + raw.slice(1);
+      const lower = value.toLowerCase();
+      if (!state.ingredients.some(i => i.toLowerCase() === lower)) {
+        state.ingredients.push(value);
+        added++;
+      }
+    });
+    renderTags();
+    this.closeOverlay();
+    showToast(
+      added > 0
+        ? `✨ Added ${added} ingredient${added !== 1 ? 's' : ''} from your fridge!`
+        : 'All detected ingredients were already in your list.',
+      'success'
+    );
+    // Scroll to ingredients
+    setTimeout(() => {
+      $('ingredient-tags')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 150);
+  },
+
+  closeOverlay() {
+    this.overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+    this.previewImg.src = '';
+    this.pendingItems   = [];
+  }
+};
 
 // ════════════════════════════════════════════════════════
 // EVENT LISTENERS
@@ -781,12 +1185,15 @@ function init() {
     checkPwStrength(e.target.value);
   });
 
-  // Escape closes modal / cook mode
+  // Escape closes modal / cook mode / fridge overlay / grocery
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (!el.cookMode.classList.contains('hidden'))  closeCookMode();
-    else if (!el.modalAuth.classList.contains('hidden')) closeModal();
-    else if (el.mobileMenu.classList.contains('open'))   closeMobileMenu();
+    if (!fridgeVision.overlay?.classList.contains('hidden')) { fridgeVision.closeOverlay(); return; }
+      if (!$('modal-grocery')?.classList.contains('hidden'))   { groceryList.close(); return; }
+    if (!$('modal-suggest')?.classList.contains('hidden'))   { smartSuggestions.close(); return; }
+    if (!el.cookMode.classList.contains('hidden'))           closeCookMode();
+    else if (!el.modalAuth.classList.contains('hidden'))     closeModal();
+    else if (el.mobileMenu.classList.contains('open'))       closeMobileMenu();
   });
 
   // ── Ingredient input ──
@@ -807,15 +1214,12 @@ function init() {
 
   // Recipe results — event delegation
   el.recipeResults.addEventListener('click', e => {
-    const heartBtn  = e.target.closest('.btn-heart');
-    const cookBtn   = e.target.closest('.btn-cook-now');
-
-    if (heartBtn && !heartBtn.classList.contains('saved')) {
-      saveRecipe(Number(heartBtn.dataset.index));
-    }
-    if (cookBtn) {
-      openCookMode(Number(cookBtn.dataset.index));
-    }
+    const heartBtn   = e.target.closest('.btn-heart');
+    const cookBtn    = e.target.closest('.btn-cook-now');
+    const groceryBtn = e.target.closest('.btn-grocery');
+    if (heartBtn && !heartBtn.classList.contains('saved')) saveRecipe(Number(heartBtn.dataset.index));
+    if (cookBtn)    openCookMode(Number(cookBtn.dataset.index));
+    if (groceryBtn) groceryList.open(Number(groceryBtn.dataset.index));
   });
 
   // ── Saved list ──
@@ -847,6 +1251,18 @@ function init() {
   // ── Mouse glow ──
   initMouseGlow();
 
+  // ── Fridge Vision ──
+  fridgeVision.init();
+
+  // ── Voice Input ──
+  voiceInput.init();
+
+  // ── Grocery List ──
+  groceryList.init();
+
+  // ── Smart Suggestions ──
+  smartSuggestions.init();
+
   // ── Initial state ──
   updateAuthUI();
   renderTags();
@@ -860,3 +1276,4 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+

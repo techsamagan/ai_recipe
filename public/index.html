@@ -189,6 +189,11 @@
 
         <!-- Magic input -->
         <div class="input-card">
+          <!-- Fridge Vision banner -->
+          <div class="vision-banner">
+            <span class="vision-badge">✨ NEW</span>
+            <span class="vision-banner-text">Let AI scan your fridge photo and fill this in automatically!</span>
+          </div>
           <div class="magic-input-wrap">
             <span class="input-prefix-icon">🔍</span>
             <input
@@ -198,10 +203,57 @@
               placeholder="e.g. chicken, garlic, lemon…"
               autocomplete="off"
             />
+            <button id="btn-mic" class="btn-mic" title="Voice input" aria-label="Speak ingredients" aria-pressed="false">🎙</button>
             <button id="btn-add-ingredient" class="btn-add-ingredient">Add</button>
           </div>
+
+          <!-- Fridge Vision upload row -->
+          <div class="vision-upload-row">
+            <input type="file" id="fridge-file-input" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" aria-label="Upload fridge photo" />
+            <button id="btn-scan-fridge" class="btn-scan-fridge">
+              <span class="scan-icon">📷</span>
+              <span>Scan Fridge / Pantry</span>
+            </button>
+            <span class="vision-divider">— or type ingredients above</span>
+          </div>
+
           <div id="ingredient-tags" class="tag-container"></div>
-          <p id="ingredient-hint" class="hint">No ingredients yet — start typing above!</p>
+          <p id="ingredient-hint" class="hint">No ingredients yet — start typing or scan your fridge!</p>
+        </div>
+
+        <!-- ── Fridge Scan Overlay ── -->
+        <div id="fridge-scan-overlay" class="fridge-scan-overlay hidden" role="dialog" aria-modal="true" aria-label="Scanning fridge">
+          <div class="fridge-scan-modal">
+            <!-- Preview of uploaded image -->
+            <div class="fridge-preview-wrap">
+              <img id="fridge-preview-img" class="fridge-preview-img" src="" alt="Fridge photo preview" />
+              <div class="fridge-scan-sweep"></div>
+            </div>
+            <!-- Status -->
+            <div class="fridge-scan-status">
+              <div id="fridge-scan-icon" class="fridge-scan-eye">👁</div>
+              <p id="fridge-scan-text" class="fridge-scan-text">AI is reading your fridge…</p>
+              <p id="fridge-scan-sub"  class="fridge-scan-sub">Identifying ingredients with computer vision</p>
+            </div>
+            <!-- Detected ingredients (populates live) -->
+            <div id="fridge-detected-wrap" class="fridge-detected-wrap hidden">
+              <p class="fridge-detected-label">Detected ingredients:</p>
+              <div id="fridge-detected-tags" class="fridge-detected-tags"></div>
+              <button id="btn-fridge-confirm" class="btn-fridge-confirm">
+                ✓ Add All to My List
+              </button>
+              <button id="btn-fridge-cancel" class="btn-fridge-cancel">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 💡 Smart Suggestions trigger -->
+        <div class="suggestions-trigger-row">
+          <button id="btn-smart-suggest" class="btn-smart-suggest">
+            <span class="suggest-sparkle">💡</span>
+            <span>What should I buy? <em>Get healthy suggestions</em></span>
+            <span class="suggest-arrow">→</span>
+          </button>
         </div>
 
         <!-- Dietary filter icons -->
@@ -350,6 +402,62 @@
         <p class="auth-switch">Already have an account? <button class="link-btn" id="to-login">Sign In</button></p>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       GROCERY LIST MODAL
+       ════════════════════════════════════ -->
+  <div id="modal-grocery" class="modal hidden" role="dialog" aria-modal="true" aria-label="Grocery list">
+    <div class="modal-backdrop" id="grocery-backdrop"></div>
+    <div class="modal-box glass-modal grocery-modal">
+      <button class="modal-x" id="grocery-close-btn" aria-label="Close">×</button>
+      <div class="modal-icon">🛒</div>
+      <h2 class="modal-title">Grocery List</h2>
+      <p class="modal-sub" id="grocery-recipe-name"></p>
+      <div class="grocery-legend">
+        <span class="legend-pill legend-have">✓ you have it</span>
+        <span class="legend-pill legend-need">✗ need to buy</span>
+      </div>
+      <ul id="grocery-items" class="grocery-items"></ul>
+      <div class="grocery-actions">
+        <button id="btn-copy-grocery" class="btn-fridge-confirm">📋 Copy Missing Items</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       SMART SUGGESTIONS MODAL
+       ════════════════════════════════════ -->
+  <div id="modal-suggest" class="modal hidden" role="dialog" aria-modal="true" aria-label="Healthy grocery suggestions">
+    <div class="modal-backdrop" id="suggest-backdrop"></div>
+    <div class="modal-box glass-modal suggest-modal">
+      <button class="modal-x" id="suggest-close-btn" aria-label="Close">×</button>
+
+      <!-- Header -->
+      <div class="suggest-header">
+        <div class="suggest-header-icon">🛍️</div>
+        <div>
+          <h2 class="modal-title" style="text-align:left;margin-bottom:.2rem">Healthy Grocery Picks</h2>
+          <p class="modal-sub" style="text-align:left">AI-curated for your pantry gaps &amp; nutrition goals</p>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="suggest-loading" class="suggest-loading">
+        <div class="spinner"></div>
+        <p>Claude is analyzing your pantry…</p>
+      </div>
+
+      <!-- Results -->
+      <div id="suggest-results" class="suggest-results hidden">
+        <div id="suggest-chips" class="suggest-chips"></div>
+        <p class="suggest-tip">Tap items to select, then add them to your list.</p>
+        <div class="suggest-actions">
+          <button id="btn-suggest-add" class="btn-fridge-confirm">✓ Add Selected to My List</button>
+          <button id="btn-suggest-all" class="btn-suggest-all">Select All</button>
+        </div>
+      </div>
     </div>
   </div>
 

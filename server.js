@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // base64 images can be several MB
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Auth routes ──────────────────────────────────────────────────────────────
@@ -21,6 +21,8 @@ app.get('/api/auth/profile',   authenticateToken, authController.getProfile);
 
 // ── Recipe routes ─────────────────────────────────────────────────────────────
 app.post('/api/recipes/generate',       recipesController.generateRecipes);
+app.post('/api/recipes/scan-fridge',    recipesController.scanFridge);       // ← Vision endpoint
+app.post('/api/recipes/smart-suggestions', recipesController.smartSuggestions); // ← Healthy suggestions
 app.get('/api/recipes/saved',           authenticateToken, recipesController.getSavedRecipes);
 app.post('/api/recipes/save',           authenticateToken, recipesController.saveRecipe);
 app.delete('/api/recipes/saved/:id',    authenticateToken, recipesController.deleteSavedRecipe);

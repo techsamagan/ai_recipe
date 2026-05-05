@@ -602,6 +602,34 @@ header {
 }
 .btn-add-ingredient:hover { background: var(--green-light); transform: scale(1.03); }
 
+/* 🎙 Mic button */
+.btn-mic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border-md);
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: background var(--t), border-color var(--t), box-shadow var(--t), transform var(--t);
+  position: relative;
+}
+.btn-mic:hover { border-color: var(--orange); background: rgba(230,81,0,.12); transform: scale(1.08); }
+.btn-mic:disabled { opacity: .35; cursor: not-allowed; }
+/* Pulsing ring when listening */
+.btn-mic.listening {
+  background: rgba(239,68,68,.18);
+  border-color: #ef4444;
+  animation: micPulse 1s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+}
+
 /* ── Ingredient tags ──────────────────────────────────────── */
 .tag-container { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .9rem; }
 .tag {
@@ -1432,3 +1460,527 @@ summary:hover { background: var(--bg-hover); color: var(--text); }
   .saved-recipe-card { flex-direction: column; }
   .auth-panel { padding: 2rem 1.5rem; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   FRIDGE VISION — Scan UI
+   ═══════════════════════════════════════════════════════ */
+
+/* Promo banner inside input-card */
+.vision-banner {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  background: linear-gradient(135deg, rgba(230,81,0,.12) 0%, rgba(46,125,50,.12) 100%);
+  border: 1px solid rgba(230,81,0,.25);
+  border-radius: var(--r);
+  padding: .6rem 1rem;
+  margin-bottom: 1rem;
+  font-size: .82rem;
+  color: var(--text-muted);
+}
+.vision-badge {
+  background: linear-gradient(120deg, var(--orange), var(--green-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  font-size: .75rem;
+  letter-spacing: .06em;
+  flex-shrink: 0;
+}
+.vision-banner-text { line-height: 1.4; }
+
+/* Scan button row */
+.vision-upload-row {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  margin-top: .85rem;
+  flex-wrap: wrap;
+}
+.vision-divider {
+  color: var(--text-dim);
+  font-size: .78rem;
+}
+
+/* 📷 Scan Fridge button */
+.btn-scan-fridge {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(230,81,0,.18) 0%, rgba(46,125,50,.18) 100%);
+  border: 1.5px solid rgba(230,81,0,.45);
+  border-radius: var(--r-full);
+  padding: .55rem 1.3rem;
+  font-size: .88rem;
+  font-weight: 700;
+  color: #ffb74d;
+  letter-spacing: .01em;
+  transition: background var(--t), border-color var(--t), transform var(--t), box-shadow var(--t);
+}
+.btn-scan-fridge:hover {
+  background: linear-gradient(135deg, rgba(230,81,0,.28) 0%, rgba(46,125,50,.25) 100%);
+  border-color: var(--orange);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(230,81,0,.3);
+}
+.btn-scan-fridge:active { transform: scale(.97); }
+/* Shimmer sweep over button */
+.btn-scan-fridge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.12) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: btnShimmer 2.8s 1.5s infinite;
+}
+@keyframes btnShimmer {
+  0%   { transform: translateX(-100%); }
+  50%,100% { transform: translateX(120%); }
+}
+.scan-icon { font-size: 1.1rem; transition: transform var(--t); }
+.btn-scan-fridge:hover .scan-icon { transform: scale(1.2) rotate(-5deg); }
+
+/* ─── Fridge Scan Overlay ─────────────────────────────── */
+.fridge-scan-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  animation: overlayFadeIn .3s ease both;
+}
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.fridge-scan-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-lg);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg), 0 0 60px rgba(230,81,0,.15);
+  width: 100%;
+  max-width: 540px;
+  overflow: hidden;
+  animation: modalSlideUp .35s cubic-bezier(.34,1.4,.64,1) both;
+}
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(32px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Fridge image preview + sweep */
+.fridge-preview-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+.fridge-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .85;
+}
+/* Green laser sweep line */
+.fridge-scan-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(67,160,71,.08) 45%,
+    rgba(67,160,71,.55) 50%,
+    rgba(67,160,71,.08) 55%,
+    transparent 100%
+  );
+  animation: sweepDown 2s linear infinite;
+}
+@keyframes sweepDown {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+/* Stop sweep once done */
+.fridge-scan-overlay.done .fridge-scan-sweep { animation: none; opacity: 0; }
+
+/* Scanning status area */
+.fridge-scan-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.6rem 1.5rem 1.2rem;
+  text-align: center;
+  gap: .4rem;
+}
+.fridge-scan-eye {
+  font-size: 2.2rem;
+  animation: eyePulse 1.4s ease-in-out infinite;
+}
+@keyframes eyePulse {
+  0%,100% { transform: scale(1);    filter: drop-shadow(0 0 4px rgba(67,160,71,.4)); }
+  50%      { transform: scale(1.15); filter: drop-shadow(0 0 14px rgba(67,160,71,.8)); }
+}
+.fridge-scan-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.fridge-scan-sub {
+  font-size: .82rem;
+  color: var(--text-muted);
+}
+
+/* Detected ingredients chips */
+.fridge-detected-wrap {
+  padding: 0 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .85rem;
+  animation: fadeUp .3s ease both;
+}
+.fridge-detected-label {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  align-self: flex-start;
+}
+.fridge-detected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  width: 100%;
+}
+/* Individual detected chip — uses same tagPop animation */
+.detected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  background: rgba(67,160,71,.15);
+  border: 1px solid rgba(67,160,71,.35);
+  color: #a5d6a7;
+  border-radius: var(--r-full);
+  padding: .28rem .75rem;
+  font-size: .8rem;
+  font-weight: 600;
+  animation: tagPop .25s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* Buttons inside overlay */
+.btn-fridge-confirm {
+  width: 100%;
+  background: var(--green);
+  color: #fff;
+  padding: .8rem 1.5rem;
+  border-radius: var(--r-full);
+  font-size: .95rem;
+  font-weight: 800;
+  letter-spacing: .01em;
+  box-shadow: var(--shadow-green);
+  transition: background var(--t), transform var(--t);
+}
+.btn-fridge-confirm:hover {
+  background: var(--green-light);
+  transform: translateY(-1px);
+}
+.btn-fridge-cancel {
+  color: var(--text-muted);
+  font-size: .82rem;
+  padding: .3rem .6rem;
+  transition: color var(--t);
+}
+.btn-fridge-cancel:hover { color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════
+   VOICE, MACROS & GROCERY — New feature styles
+   ═══════════════════════════════════════════════════════ */
+
+/* Recipe action row (Cook Now + Grocery List side by side) */
+.recipe-action-row {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-top: .25rem;
+}
+.recipe-action-row .btn-cook-now { flex: 1; justify-content: center; }
+.btn-grocery {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: rgba(230,81,0,.12);
+  border: 1.5px solid rgba(230,81,0,.35);
+  color: #ffb74d;
+  border-radius: var(--r-full);
+  padding: .55rem 1.1rem;
+  font-size: .85rem;
+  font-weight: 700;
+  transition: background var(--t), border-color var(--t), transform var(--t);
+  flex: 1;
+  justify-content: center;
+}
+.btn-grocery:hover {
+  background: rgba(230,81,0,.22);
+  border-color: var(--orange);
+  transform: translateY(-1px);
+}
+
+/* 📈 Macro nutrition bars */
+.macro-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: .9rem 1rem;
+  margin: .85rem 0;
+}
+.macro-title {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: .65rem;
+}
+.macro-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr 4.5rem;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .42rem;
+}
+.macro-row:last-child { margin-bottom: 0; }
+.macro-label { font-size: .74rem; color: var(--text-muted); font-weight: 500; }
+.macro-bar-track {
+  height: 6px;
+  background: rgba(255,255,255,.07);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.macro-bar {
+  height: 100%;
+  border-radius: var(--r-full);
+  width: 0;
+  animation: barGrow .9s .35s ease both;
+}
+@keyframes barGrow { to { width: var(--bar-w); } }
+.macro-cal     { background: linear-gradient(90deg, var(--orange), #ff6d00); }
+.macro-protein { background: linear-gradient(90deg, #42a5f5, #1e88e5); }
+.macro-carbs   { background: linear-gradient(90deg, var(--green-light), #2e7d32); }
+.macro-fat     { background: linear-gradient(90deg, #ffd54f, #f9a825); }
+.macro-val { font-size: .72rem; font-weight: 600; color: var(--text-muted); text-align: right; }
+
+/* 🛒 Grocery list modal */
+.grocery-modal {
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  max-height: 90vh;
+  overflow: hidden;
+}
+.grocery-legend {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin: .35rem 0 .6rem;
+}
+.legend-pill {
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .2rem .65rem;
+  border-radius: var(--r-full);
+}
+.legend-have { background: rgba(46,125,50,.18); color: #a5d6a7; border: 1px solid rgba(46,125,50,.3); }
+.legend-need { background: rgba(230,81,0,.15);  color: #ffb74d; border: 1px solid rgba(230,81,0,.3); }
+
+.grocery-items {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  overflow-y: auto;
+  max-height: 42vh;
+  padding-right: .25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  margin: .35rem 0;
+}
+.grocery-item label {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .55rem .75rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: background var(--t), border-color var(--t);
+  font-size: .88rem;
+}
+.grocery-item label:hover { background: var(--bg-hover); }
+.grocery-item input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--orange);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.grocery-item.have label { border-color: rgba(46,125,50,.25); }
+.grocery-item.need label { border-color: rgba(230,81,0,.25); }
+.grocery-ing   { flex: 1; }
+.grocery-badge {
+  font-size: .68rem; font-weight: 700; color: #a5d6a7;
+  background: rgba(46,125,50,.18); border-radius: var(--r-full);
+  padding: .15rem .5rem; white-space: nowrap; flex-shrink: 0;
+}
+.grocery-actions { margin-top: .5rem; }
+
+/* ═══════════════════════════════════════════════════════
+   SMART GROCERY SUGGESTIONS
+   ═══════════════════════════════════════════════════════ */
+
+.suggestions-trigger-row {
+  margin-top: .85rem;
+  padding-top: .85rem;
+  border-top: 1px solid var(--border);
+}
+.btn-smart-suggest {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  width: 100%;
+  padding: .85rem 1.1rem;
+  background: linear-gradient(135deg, rgba(171,71,188,.1) 0%, rgba(33,150,243,.1) 100%);
+  border: 1.5px solid rgba(171,71,188,.3);
+  border-radius: var(--r-lg);
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: left;
+  transition: background var(--t), border-color var(--t), transform var(--t), box-shadow var(--t);
+}
+.btn-smart-suggest:hover {
+  background: linear-gradient(135deg, rgba(171,71,188,.18) 0%, rgba(33,150,243,.18) 100%);
+  border-color: rgba(171,71,188,.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(171,71,188,.2);
+  color: var(--text);
+}
+.btn-smart-suggest em { color: #ce93d8; font-style: normal; font-weight: 700; }
+.suggest-sparkle {
+  font-size: 1.3rem;
+  animation: sparklePop 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes sparklePop {
+  0%,100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.2) rotate(15deg); }
+}
+.suggest-arrow {
+  margin-left: auto;
+  font-size: 1rem;
+  color: rgba(171,71,188,.6);
+  transition: transform var(--t);
+}
+.btn-smart-suggest:hover .suggest-arrow { transform: translateX(4px); color: #ce93d8; }
+
+.suggest-modal {
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  max-height: 92vh;
+  overflow: hidden;
+}
+.suggest-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: .75rem;
+  border-bottom: 1px solid var(--border);
+}
+.suggest-header-icon { font-size: 2rem; flex-shrink: 0; }
+.suggest-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .85rem;
+  padding: 2.5rem 1rem;
+  color: var(--text-muted);
+  font-size: .9rem;
+}
+.suggest-results {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  overflow-y: auto;
+  max-height: 60vh;
+  padding-right: .25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.suggest-group { margin-bottom: .25rem; }
+.suggest-cat-label {
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: .45rem;
+}
+.suggest-group-chips { display: flex; flex-wrap: wrap; gap: .45rem; }
+.suggest-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .15rem;
+  background: var(--chip-bg, rgba(46,125,50,.12));
+  border: 1.5px solid var(--chip-border, rgba(46,125,50,.3));
+  border-radius: var(--r);
+  padding: .5rem .75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: transform var(--t), box-shadow var(--t), border-color var(--t), background var(--t);
+  animation: tagPop .25s cubic-bezier(.34,1.56,.64,1) both;
+  min-width: 100px;
+  max-width: 180px;
+}
+.suggest-chip:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+.suggest-chip.selected {
+  border-color: var(--chip-border, rgba(46,125,50,.6));
+  background: var(--chip-bg, rgba(46,125,50,.28));
+  box-shadow: 0 0 0 2px var(--chip-border, rgba(46,125,50,.3));
+}
+.chip-emoji  { font-size: 1.15rem; line-height: 1; }
+.chip-name   { font-size: .82rem; font-weight: 700; color: var(--chip-text, #a5d6a7); line-height: 1.2; }
+.chip-benefit {
+  font-size: .68rem; color: var(--text-dim); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.suggest-tip {
+  font-size: .75rem; color: var(--text-dim); text-align: center;
+  padding-top: .5rem; border-top: 1px solid var(--border);
+}
+.suggest-actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.suggest-actions .btn-fridge-confirm { flex: 1; }
+.suggest-actions .btn-fridge-confirm:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.btn-suggest-all {
+  padding: .6rem 1rem;
+  border: 1.5px solid var(--border-md);
+  border-radius: var(--r-full);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: border-color var(--t), color var(--t);
+  white-space: nowrap;
+}
+.btn-suggest-all:hover { border-color: var(--border-lg); color: var(--text); }
